@@ -1,0 +1,80 @@
+{% extends "base.html" %}{% block title %}Dashboard · CampusFix{% endblock %}
+{% block content %}
+<div class="page-top"><div><div class="eyebrow">{{session.role|upper}} WORKSPACE</div><h1>{% if session.role=='student' %}Your campus, better.{% elif session.role=='admin' %}Campus overview.{% else %}Your work queue.{% endif %}</h1><p class="muted">{% if session.role=='student' %}Raise a problem and follow it through to resolution.{% elif session.role=='admin' %}Monitor reports, route work and keep campus operations moving.{% else %}Review assigned problems and update their progress.{% endif %}</p></div><div class="today-pill"><span class="online-dot"></span> Live local workspace</div></div>
+
+<section class="metric-grid">
+ <article class="metric-card"><div class="metric-top"><span>Total reports</span><span class="metric-icon blue">▤</span></div><strong>{{stats.total}}</strong><small>All submitted complaints</small></article>
+ <article class="metric-card"><div class="metric-top"><span>Open issues</span><span class="metric-icon amber">◷</span></div><strong>{{stats.open}}</strong><small>Need attention</small></article>
+ <article class="metric-card"><div class="metric-top"><span>Resolved</span><span class="metric-icon green">✓</span></div><strong>{{stats.resolved}}</strong><small>Resolved or closed</small></article>
+ <article class="metric-card"><div class="metric-top"><span>New reports</span><span class="metric-icon violet">✳</span></div><strong>{{stats.pending}}</strong><small>Awaiting assignment</small></article>
+</section>
+
+{% if session.role=='student' %}
+<section class="panel report-panel" id="new-complaint"><div class="panel-heading"><div><div class="eyebrow">NEW REQUEST</div><h2>Report a campus problem</h2><p class="muted">Give us enough detail so the right team can help.</p></div><span class="step-chip">01 / REPORT</span></div>
+<form method="post" action="{{url_for('create_complaint')}}" enctype="multipart/form-data" class="report-form">
+ <label class="field-span">Complaint title<input name="title" required minlength="4" maxlength="100" placeholder="e.g. Projector not working in Room 204"></label>
+ <label>Category<select name="category" required><option value="">Choose a category</option>{% for c in categories %}<option>{{c}}</option>{% endfor %}</select></label>
+ <label>Building / location<input name="location" required placeholder="e.g. Block A, Room 204"></label>
+ <label class="field-span">Description<textarea name="description" required minlength="10" rows="3" placeholder="Describe what happened, where it is, and when you noticed it..."></textarea></label>
+ <label class="field-span upload-field"><span>Attach a photo <small>(optional · JPG, PNG or WEBP · max 5 MB)</small></span><input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp"></label>
+ <div class="field-span form-bottom"><span class="muted tiny-note">Your report will be checked for duplicates before it is saved.</span><button class="btn btn-primary">Submit complaint <span>→</span></button></div>
+</form></section>
+{% endif %}
+
+{% if session.role=='admin' %}
+<section class="admin-tools panel"><div><div class="eyebrow">ADMIN CONTROLS</div><h2>Action history</h2><p class="muted">Undo or redo your latest assignment or priority change.</p></div><div class="tool-buttons"><form method="post" action="{{url_for('history_action',action='undo')}}"><button class="btn btn-soft">↶ Undo</button></form><form method="post" action="{{url_for('history_action',action='redo')}}"><button class="btn btn-soft">↷ Redo</button></form></div></section>
+<section class="analytics-grid">
+ <article class="panel analytics-panel"><div class="panel-heading"><div><div class="eyebrow">REPORT BREAKDOWN</div><h2>By category</h2></div></div>
+ {% if category_rows %}{% set maxcat=category_rows[0].total %}{% for item in category_rows %}<div class="bar-row"><div><span>{{item.category}}</span><b>{{item.total}}</b></div><div class="bar-track"><i style="width:{{(item.total/maxcat*100)|round|int}}%"></i></div></div>{% endfor %}{% else %}<p class="muted">Category analytics will appear when reports arrive.</p>{% endif %}
+ </article>
+ <article class="panel analytics-panel"><div class="panel-heading"><div><div class="eyebrow">WORKFLOW</div><h2>Status overview</h2></div></div>
+ {% if status_rows %}{% for item in status_rows %}<div class="status-line"><span class="status-dot {{item.status|lower|replace(' ','-')}}"></span><span>{{item.status}}</span><b>{{item.total}}</b></div>{% endfor %}{% else %}<p class="muted">No status data yet.</p>{% endif %}
+ </article>
+</section>
+{% endif %}
+
+<section class="panel complaints-panel"><div class="panel-heading list-heading"><div><div class="eyebrow">{% if session.role=='student' %}YOUR ACTIVITY{% elif session.role=='admin' %}CAMPUS OPERATIONS{% else %}ASSIGNED TO YOU{% endif %}</div><h2>{% if session.role=='student' %}Your complaints{% elif session.role=='admin' %}All complaints{% else %}My assigned complaints{% endif %}</h2><p class="muted">Search reports and review their latest status.</p></div><span class="record-count">{{complaints|length}} shown</span></div>
+<form class="filter-row" method="get" action="{{url_for('dashboard')}}"><div class="search-wrap"><span>⌕</span><input name="q" value="{{search}}" placeholder="Search title, location{% if session.role=='admin' %}, student{% endif %} or ID"></div><select name="status">{% for s in statuses %}<option value="{{s}}" {% if selected_status==s %}selected{% endif %}>{{s}} status</option>{% endfor %}</select><button class="btn btn-soft">Filter</button>{% if search or selected_status!='All' %}<a class="clear-link" href="{{url_for('dashboard')}}">Clear</a>{% endif %}</form>
+{% if complaints %}
+<div class="complaint-list">
+{% for c in complaints %}
+<article class="complaint-card">
+ <div class="complaint-main">
+  <div class="complaint-id">CF-{{'%04d'|format(c.id)}} <span class="priority-tag {{c.priority|lower}}">{{c.priority}} priority</span></div>
+  <h3>{{c.title}}</h3><p class="complaint-desc">{{c.description}}</p>
+  <div class="complaint-meta"><span>⌖ {{c.location}}</span><span>▦ {{c.category}}</span><span>◷ {{c.created_at}}</span>{% if c.reporter_name is defined %}<span>♙ {{c.reporter_name}}</span>{% endif %}</div>
+  {% if c.photo_path %}<a class="photo-link" href="{{url_for('uploaded_file',filename=c.photo_path)}}" target="_blank">▧ View attached photo</a>{% endif %}
+  {% if c.assignee_name is defined and c.assignee_name %}<div class="assignee-chip">Assigned to <b>{{c.assignee_name}}</b></div>{% elif session.role=='student' %}<div class="assignee-chip muted">Waiting for staff assignment</div>{% endif %}
+  {% if c.status=='Rejected' and c.rejected_reason %}<div class="reason-box"><b>Rejection reason:</b> {{c.rejected_reason}}</div>{% endif %}
+  {% if c.status=='Resolved' and c.resolution_note %}<div class="reason-box"><b>Resolution note:</b> {{c.resolution_note}}</div>{% endif %}
+  <details class="timeline-details"><summary>View status history ({{history_by_id[c.id]|length}})</summary><div class="timeline">{% for h in history_by_id[c.id] %}<div><i></i><span><b>{{h.to_state}}</b><small>{{h.actor_name or 'System'}} · {{h.created_at}}{% if h.remark %} · {{h.remark}}{% endif %}</small></span></div>{% endfor %}</div></details>
+ </div>
+ <div class="complaint-side"><span class="status-pill {{c.status|lower|replace(' ','-')}}">{{c.status}}</span>
+ {% if session.role=='admin' %}
+ <details class="action-details"><summary>Manage report</summary>
+ <form method="post" action="{{url_for('assign',cid=c.id)}}" class="action-form"><label>Assignment strategy<select name="strategy">{% for st in ['Skill match','Least loaded','Round robin','Zone based','Skill + least loaded'] %}<option>{{st}}</option>{% endfor %}</select></label><label>Staff member (optional override)<select name="staff_id"><option value="">Automatic selection</option>{% for st in staff %}<option value="{{st.id}}">{{st.name}} · {{st.skill}}</option>{% endfor %}</select></label><button class="btn btn-primary btn-small">Assign staff</button></form>
+ <form method="post" action="{{url_for('priority',cid=c.id)}}" class="action-form"><label>Priority<select name="priority">{% for p in ['Low','Medium','High','Critical'] %}<option {% if c.priority==p %}selected{% endif %}>{{p}}</option>{% endfor %}</select></label><button class="btn btn-soft btn-small">Save priority</button></form>
+ {% if c.status in ['New','Assigned'] %}<form method="post" action="{{url_for('reject',cid=c.id)}}" class="action-form"><label>Reject reason<input name="reason" required minlength="4" placeholder="Reason for rejection"></label><button class="btn btn-danger btn-small">Reject complaint</button></form>{% endif %}
+ </details>
+ {% elif session.role=='staff' %}
+ {% if c.status in ['Assigned','In Progress','Resolved'] %}
+ <details class="action-details"><summary>Update progress</summary><form method="post" action="{{url_for('update_status',cid=c.id)}}" class="action-form">
+ <label>Action<select name="action">{% if c.status=='Assigned' %}<option value="start">Accept & start work</option>{% elif c.status=='In Progress' %}<option value="resolve">Mark as resolved</option>{% elif c.status=='Resolved' %}<option value="close">Close complaint</option><option value="reopen">Reopen work</option>{% endif %}</select></label>
+ <label>Work note<input name="remark" placeholder="Optional update for the student"></label><button class="btn btn-primary btn-small">Update status</button></form></details>
+ {% endif %}
+ {% elif session.role=='student' %}
+ {% if c.status in ['New','Assigned'] %}<form method="post" action="{{url_for('update_status',cid=c.id)}}" onsubmit="return confirm('Cancel this complaint?')"><input type="hidden" name="action" value="reject"><button class="text-button">Cancel report</button></form>{% endif %}
+ {% if c.status in ['Resolved','Closed'] and c.id not in feedback_ids %}<details class="action-details"><summary>Leave feedback</summary><form method="post" action="{{url_for('feedback',cid=c.id)}}" class="action-form"><label>Rating<select name="rating"><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Poor</option><option value="1">1 - Very poor</option></select></label><label>Comment<textarea name="comment" rows="2" placeholder="Tell us how it went"></textarea></label><button class="btn btn-primary btn-small">Submit feedback</button></form></details>{% elif c.id in feedback_ids %}<span class="feedback-done">✓ Feedback submitted</span>{% endif %}
+ {% endif %}
+ </div>
+</article>
+{% endfor %}
+</div>
+{% else %}<div class="empty-state"><div class="empty-icon">▤</div><h3>No complaints found</h3><p>Try changing the filters, or submit a new report.</p></div>{% endif %}
+</section>
+
+<section class="panel notification-panel"><div class="panel-heading"><div><div class="eyebrow">RECENT UPDATES</div><h2>Notifications <span class="unread-count">{{unread}}</span></h2><p class="muted">Updates about your campus reports and assigned work.</p></div><form method="post" action="{{url_for('mark_notifications_read')}}"><button class="btn btn-soft btn-small">Mark all read</button></form></div>
+{% if notifications %}<div class="notification-list">{% for n in notifications %}<div class="notification-item {% if not n.is_read %}unread{% endif %}"><span class="notification-symbol">↗</span><div><p>{{n.message}}</p><small>{{n.channel}} · {{n.created_at}}</small></div></div>{% endfor %}</div>{% else %}<p class="muted">You're all caught up. No notifications yet.</p>{% endif %}
+</section>
+<footer class="page-footer">CampusFix · Campus Problem Reporter <span>Built for academic demonstration · 10 design patterns</span></footer>
+{% endblock %}

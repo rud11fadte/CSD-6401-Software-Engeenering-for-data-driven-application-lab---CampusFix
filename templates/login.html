@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Sign in · CampusFix{% endblock %}
+{% block content %}<section class="auth-card"><div class="auth-brand"><span class="brand-icon">C</span><span>CampusFix</span></div><div class="eyebrow">CAMPUS PROBLEM REPORTER</div><h1>Welcome back.</h1><p class="muted">Sign in to report, manage or resolve campus issues.</p>
+<form method="post" class="stack-form"><label>Email address<input type="email" name="email" placeholder="you@college.edu" required></label><label>Password<input type="password" name="password" placeholder="Enter your password" required></label><button class="btn btn-primary full">Sign in <span>→</span></button></form>
+<p class="auth-switch">New to CampusFix? <a href="{{url_for('register')}}">Create a student account</a></p>
+<div class="demo-credentials"><b>Demo accounts</b><div><span>Student</span><code>student@campusfix.test / student123</code></div><div><span>Admin</span><code>admin@campusfix.test / admin123</code></div><div><span>Staff</span><code>electric@campusfix.test / staff123</code></div></div>
+</section>{% endblock %}

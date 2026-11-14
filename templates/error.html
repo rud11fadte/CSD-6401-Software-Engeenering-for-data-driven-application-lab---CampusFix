@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block title %}{{code}} · CampusFix{% endblock %}
+{% block content %}<section class="auth-card"><div class="eyebrow">CAMPUSFIX</div><h1>{{code}}</h1><p class="muted">{{message}}</p><a class="btn btn-primary full" href="{{url_for('dashboard') if session.get('user_id') else url_for('login')}}">Return to CampusFix</a></section>{% endblock %}

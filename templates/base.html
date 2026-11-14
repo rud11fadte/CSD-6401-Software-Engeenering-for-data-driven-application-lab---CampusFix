@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}CampusFix{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{url_for('static',filename='css/style.css')}}">
+</head><body>
+{% if session.get('user_id') %}
+<aside class="sidebar">
+ <a class="brand" href="{{url_for('dashboard')}}"><span class="brand-icon">C</span><span>Campus<span class="brand-light">Fix</span><small>CAMPUS SERVICES</small></span></a>
+ <div class="side-label">WORKSPACE</div>
+ <a class="nav-link active" href="{{url_for('dashboard')}}"><span>▦</span> Overview</a>
+ {% if session.role=='student' %}<a class="nav-link" href="{{url_for('dashboard')}}#new-complaint"><span>＋</span> Report a problem</a>{% endif %}
+ <div class="side-label">ACCOUNT</div>
+ <div class="side-user"><div class="avatar">{{session.name[:1]|upper}}</div><div><b>{{session.name}}</b><small>{{session.role|title}}</small></div></div>
+ <a class="nav-link logout-link" href="{{url_for('logout')}}"><span>↪</span> Sign out</a>
+ <div class="sidebar-bottom"><span class="online-dot"></span> CampusFix is running locally</div>
+</aside>
+<header class="mobile-top"><a class="brand" href="{{url_for('dashboard')}}"><span class="brand-icon">C</span>CampusFix</a><a href="{{url_for('logout')}}">Sign out</a></header>
+{% endif %}
+<main class="{% if session.get('user_id') %}main-content{% else %}auth-shell{% endif %}">
+ {% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category,message in messages %}<div class="flash {{category}}"><span>{{'✓' if category=='success' else '!'}}</span>{{message}}<button type="button" onclick="this.parentElement.remove()">×</button></div>{% endfor %}</div>{% endif %}{% endwith %}
+ {% block content %}{% endblock %}
+</main>
+<script src="{{url_for('static',filename='js/app.js')}}"></script>
+</body></html>
